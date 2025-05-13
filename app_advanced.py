@@ -3,8 +3,12 @@ from flask_cors import CORS
 import requests
 import json
 import os
+import io
+import base64
 from dotenv import load_dotenv
 import uuid
+import pytesseract
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -100,6 +104,58 @@ def get_financial_advice(income, expenses, goals):
     else:
         return f"Error: {response.status_code} - {response.text}"
 
+def extract_text_from_image(image_data):
+    """Extract text from image using OCR"""
+    try:
+        # Set OCR configuration
+        custom_config = r'--oem 3 --psm 6'
+        
+        # Process the image with pytesseract
+        text = pytesseract.image_to_string(image_data, lang='ind', config=custom_config)
+        return text
+    except Exception as e:
+        print(f"OCR Error: {str(e)}")
+        return None
+
+def analyze_receipt(ocr_text):
+    """Send OCR text to Gemini API for analysis"""
+    prompt = f"""
+Berikut adalah isi struk hasil OCR:
+
+{ocr_text}
+
+Tolong ekstrak informasi penting dari struk ini dan berikan hasil dalam format JSON dengan key:
+- "judul": judul transaksi yang relevan (kalo ga ada bisa liat daftar belinya dan cari judul yang tepat)
+- "tanggal": tanggal transaksi aja tidak usah ada jam waktunya(format bebas, tapi jelas)
+- "subtotal": nilai total pembayaran
+Jika tidak ditemukan, isi dengan "Tidak ditemukan".
+Langsung berikan JSON-nya saja, tanpa penjelasan.
+    """
+
+    # Data to send to API
+    data = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": prompt
+                    }
+                ]
+            }
+        ],
+    }
+
+    # Send POST request to Gemini API
+    response = requests.post(url, json=data, headers={"Content-Type": "application/json"})
+    
+    # Check status and get result
+    if response.status_code == 200:
+        result = response.json()
+        output_text = result['candidates'][0]['content']['parts'][0]['text'].strip()
+        return output_text
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
@@ -156,6 +212,38 @@ def financial_advice():
     return jsonify({
         'advice': advice
     })
+
+@app.route('/api/ocr-receipt', methods=['POST'])
+def ocr_receipt():
+    # Check if image is provided
+    if 'image' not in request.json:
+        return jsonify({'error': 'No image data provided'}), 400
+    
+    try:
+        # Get base64 encoded image from request
+        image_data = request.json.get('image', '')
+        
+        # Decode base64 string to image
+        image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
+        image = Image.open(io.BytesIO(image_bytes))
+        
+        # Extract text using OCR
+        ocr_text = extract_text_from_image(image)
+        
+        if not ocr_text:
+            return jsonify({'error': 'Failed to extract text from image'}), 500
+        
+        # Analyze receipt using AI
+        analysis_result = analyze_receipt(ocr_text)
+        
+        # Return OCR text and analysis
+        return jsonify({
+            'ocr_text': ocr_text,
+            'analysis': analysis_result
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error processing image: {str(e)}'}), 500
 
 @app.route('/api/history', methods=['GET'])
 def get_history():

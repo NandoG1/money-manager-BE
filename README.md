@@ -13,9 +13,14 @@ A Flask-based backend API for a financial advisor chatbot that uses Google's Gem
    ```
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
-4. Run the server:
+4. Install Tesseract OCR:
+   - For Ubuntu/Debian: `sudo apt-get install tesseract-ocr`
+   - For macOS: `brew install tesseract`
+   - For Windows: Download installer from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
+   - Install Indonesian language pack as needed
+5. Run the server:
    ```
-   python app.py
+   python run.py
    ```
 
 ## API Endpoints
@@ -60,6 +65,27 @@ Response:
 ```json
 {
 	"advice": "Based on your financial situation, here are my recommendations: ..."
+}
+```
+
+### OCR Receipt Processing
+
+`POST /api/ocr-receipt`
+
+Request body:
+
+```json
+{
+	"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
+}
+```
+
+Response:
+
+```json
+{
+	"ocr_text": "Raw OCR text extracted from the receipt...",
+	"analysis": "{\"judul\":\"Supermarket ABC\",\"tanggal\":\"15/06/2023\",\"subtotal\":\"250000\"}"
 }
 ```
 
@@ -134,6 +160,35 @@ const getFinancialAdvice = async (income: string, expenses: string, goals: strin
 	} catch (error) {
 		console.error("Error getting financial advice:", error);
 		return "Sorry, there was an error processing your request.";
+	}
+};
+```
+
+### Example for OCR Receipt Processing
+
+```typescript
+const processReceipt = async (imageBase64: string) => {
+	try {
+		const response = await fetch("http://localhost:5000/api/ocr-receipt", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ image: imageBase64 }),
+		});
+
+		const data = await response.json();
+		// Parse the JSON string from the analysis field
+		const analysis = JSON.parse(data.analysis);
+		return {
+			rawText: data.ocr_text,
+			judul: analysis.judul,
+			tanggal: analysis.tanggal,
+			subtotal: analysis.subtotal,
+		};
+	} catch (error) {
+		console.error("Error processing receipt:", error);
+		return null;
 	}
 };
 ```
