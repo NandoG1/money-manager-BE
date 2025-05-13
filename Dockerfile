@@ -2,7 +2,7 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install Tesseract OCR and dependencies
+# Install Tesseract OCR and dependencies f
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libtesseract-dev \
