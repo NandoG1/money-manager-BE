@@ -1,0 +1,21 @@
+# Virtual environment
+venv/
+.env
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# IDE config
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+
+# Python logs
+*.log
