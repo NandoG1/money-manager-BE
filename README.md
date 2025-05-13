@@ -30,19 +30,17 @@ A Flask-based backend API for a financial advisor chatbot that uses Google's Gem
 `POST /api/chat`
 
 Request body:
-
 ```json
 {
-	"message": "How can I save more money?"
+  "message": "How can I save more money?"
 }
 ```
 
 Response:
-
 ```json
 {
-	"response": "To save more money, you can start by...",
-	"sessionId": "12345-67890-abcde"
+  "response": "To save more money, you can start by...",
+  "sessionId": "12345-67890-abcde"
 }
 ```
 
@@ -51,20 +49,18 @@ Response:
 `POST /api/financial-advice`
 
 Request body:
-
 ```json
 {
-	"income": "5000000",
-	"expenses": "3500000",
-	"goals": "Buying a house in 5 years and saving for retirement"
+  "income": "5000000",
+  "expenses": "3500000",
+  "goals": "Buying a house in 5 years and saving for retirement"
 }
 ```
 
 Response:
-
 ```json
 {
-	"advice": "Based on your financial situation, here are my recommendations: ..."
+  "advice": "Based on your financial situation, here are my recommendations: ..."
 }
 ```
 
@@ -73,19 +69,73 @@ Response:
 `POST /api/ocr-receipt`
 
 Request body:
-
 ```json
 {
-	"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
+  "image": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
 }
 ```
 
 Response:
-
 ```json
 {
-	"ocr_text": "Raw OCR text extracted from the receipt...",
-	"analysis": "{\"judul\":\"Supermarket ABC\",\"tanggal\":\"15/06/2023\",\"subtotal\":\"250000\"}"
+  "ocr_text": "Raw OCR text extracted from the receipt...",
+  "analysis": "{\"judul\":\"Supermarket ABC\",\"tanggal\":\"15/06/2023\",\"subtotal\":\"250000\"}"
+}
+```
+
+### Financial Prediction
+
+`POST /api/predict`
+
+This endpoint predicts income and expenses for the next 7 days based on historical transaction data.
+
+Request body:
+```json
+[
+  {
+    "date": "2025-02-01",
+    "income": 500000,
+    "expense": 200000
+  },
+  {
+    "date": "2025-02-02",
+    "income": 600000,
+    "expense": 250000
+  },
+  {
+    "date": "2025-02-03",
+    "income": 700000,
+    "expense": 180000
+  },
+  {
+    "date": "2025-02-04",
+    "income": 500000,
+    "expense": 300000
+  },
+  {
+    "date": "2025-02-05",
+    "income": 70000,
+    "expense": 220000
+  }
+]
+```
+
+Response:
+```json
+{
+  "prediction": [
+    {
+      "date": "2025-02-06",
+      "predicted_income": 550000,
+      "predicted_expense": 225000
+    },
+    {
+      "date": "2025-02-07",
+      "predicted_income": 575000,
+      "predicted_expense": 230000
+    },
+    ...
+  ]
 }
 ```
 
@@ -94,14 +144,13 @@ Response:
 `GET /api/history?sessionId=12345-67890-abcde`
 
 Response:
-
 ```json
 {
-	"history": [
-		{ "role": "user", "content": "How can I save money?" },
-		{ "role": "assistant", "content": "To save money, you can..." }
-	],
-	"sessionId": "12345-67890-abcde"
+  "history": [
+    { "role": "user", "content": "How can I save money?" },
+    { "role": "assistant", "content": "To save money, you can..." }
+  ],
+  "sessionId": "12345-67890-abcde"
 }
 ```
 
@@ -110,10 +159,9 @@ Response:
 `GET /api/health`
 
 Response:
-
 ```json
 {
-	"status": "ok"
+  "status": "ok"
 }
 ```
 
@@ -124,21 +172,21 @@ Example of how to connect from a Next.js frontend:
 ```typescript
 // Example API call from Next.js
 const sendMessage = async (message: string) => {
-	try {
-		const response = await fetch("http://localhost:5000/api/chat", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ message }),
-		});
+  try {
+    const response = await fetch("http://localhost:5000/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message }),
+    });
 
-		const data = await response.json();
-		return data.response;
-	} catch (error) {
-		console.error("Error sending message:", error);
-		return "Sorry, there was an error processing your request.";
-	}
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error("Error sending message:", error);
+    return "Sorry, there was an error processing your request.";
+  }
 };
 ```
 
@@ -146,21 +194,21 @@ const sendMessage = async (message: string) => {
 
 ```typescript
 const getFinancialAdvice = async (income: string, expenses: string, goals: string) => {
-	try {
-		const response = await fetch("http://localhost:5000/api/financial-advice", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ income, expenses, goals }),
-		});
+  try {
+    const response = await fetch("http://localhost:5000/api/financial-advice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ income, expenses, goals }),
+    });
 
-		const data = await response.json();
-		return data.advice;
-	} catch (error) {
-		console.error("Error getting financial advice:", error);
-		return "Sorry, there was an error processing your request.";
-	}
+    const data = await response.json();
+    return data.advice;
+  } catch (error) {
+    console.error("Error getting financial advice:", error);
+    return "Sorry, there was an error processing your request.";
+  }
 };
 ```
 
@@ -168,27 +216,49 @@ const getFinancialAdvice = async (income: string, expenses: string, goals: strin
 
 ```typescript
 const processReceipt = async (imageBase64: string) => {
-	try {
-		const response = await fetch("http://localhost:5000/api/ocr-receipt", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ image: imageBase64 }),
-		});
+  try {
+    const response = await fetch("http://localhost:5000/api/ocr-receipt", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: imageBase64 }),
+    });
 
-		const data = await response.json();
-		// Parse the JSON string from the analysis field
-		const analysis = JSON.parse(data.analysis);
-		return {
-			rawText: data.ocr_text,
-			judul: analysis.judul,
-			tanggal: analysis.tanggal,
-			subtotal: analysis.subtotal,
-		};
-	} catch (error) {
-		console.error("Error processing receipt:", error);
-		return null;
-	}
+    const data = await response.json();
+    // Parse the JSON string from the analysis field
+    const analysis = JSON.parse(data.analysis);
+    return {
+      rawText: data.ocr_text,
+      judul: analysis.judul,
+      tanggal: analysis.tanggal,
+      subtotal: analysis.subtotal,
+    };
+  } catch (error) {
+    console.error("Error processing receipt:", error);
+    return null;
+  }
+};
+```
+
+### Example for Financial Prediction
+
+```typescript
+const getFinancialPrediction = async (transactionHistory: any[]) => {
+  try {
+    const response = await fetch("http://localhost:5000/api/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(transactionHistory),
+    });
+
+    const data = await response.json();
+    return data.prediction;
+  } catch (error) {
+    console.error("Error getting financial prediction:", error);
+    return null;
+  }
 };
 ```
