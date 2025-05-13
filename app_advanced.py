@@ -129,7 +129,8 @@ Tolong ekstrak informasi penting dari struk ini dan berikan hasil dalam format J
 - "tanggal": tanggal transaksi aja tidak usah ada jam waktunya(format bebas, tapi jelas)
 - "subtotal": nilai total pembayaran
 Jika tidak ditemukan, isi dengan "Tidak ditemukan".
-Langsung berikan JSON-nya saja, tanpa penjelasan.
+
+PENTING: Berikan response dalam format JSON yang valid tanpa backtick, tanpa markdown, tanpa penjelasan, hanya object JSON saja. Example: {{"judul": "Supermarket ABC", "tanggal": "15/06/2023", "subtotal": "250000"}}
     """
 
     # Data to send to API
@@ -152,7 +153,30 @@ Langsung berikan JSON-nya saja, tanpa penjelasan.
     if response.status_code == 200:
         result = response.json()
         output_text = result['candidates'][0]['content']['parts'][0]['text'].strip()
-        return output_text
+        
+        # Ensure we have valid JSON by extracting it if needed
+        try:
+            # Try to parse as JSON directly first
+            json.loads(output_text)
+            return output_text
+        except json.JSONDecodeError:
+            # If it's not valid JSON, try to extract JSON object
+            import re
+            json_pattern = r'{.*}'
+            match = re.search(json_pattern, output_text, re.DOTALL)
+            
+            if match:
+                extracted_json = match.group(0)
+                try:
+                    # Validate extracted JSON
+                    json.loads(extracted_json)
+                    return extracted_json
+                except:
+                    # If still not valid, return fallback JSON
+                    return '{"judul": "Tidak ditemukan", "tanggal": "Tidak ditemukan", "subtotal": "Tidak ditemukan"}'
+            else:
+                # Fallback if no JSON object found
+                return '{"judul": "Tidak ditemukan", "tanggal": "Tidak ditemukan", "subtotal": "Tidak ditemukan"}'
     else:
         return f"Error: {response.status_code} - {response.text}"
 

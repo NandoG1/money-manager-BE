@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Receipt Scanner</title>
+		<style>
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				line-height: 1.6;
+				color: #333;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+
+			h1 {
+				font-size: 24px;
+				font-weight: bold;
+				margin-bottom: 16px;
+			}
+
+			h2 {
+				font-size: 20px;
+				font-weight: 600;
+				margin-bottom: 8px;
+			}
+
+			h3 {
+				font-size: 18px;
+				font-weight: 600;
+				margin-bottom: 8px;
+			}
+
+			.upload-area {
+				border: 2px dashed #ccc;
+				border-radius: 8px;
+				padding: 24px;
+				margin-bottom: 16px;
+				text-align: center;
+				cursor: pointer;
+				transition: border-color 0.3s;
+			}
+
+			.upload-area:hover {
+				border-color: #999;
+			}
+
+			.upload-icon {
+				width: 48px;
+				height: 48px;
+				margin: 0 auto 8px;
+				color: #666;
+			}
+
+			.upload-text {
+				margin-top: 8px;
+				font-size: 14px;
+				color: #666;
+			}
+
+			.upload-hint {
+				font-size: 12px;
+				color: #999;
+			}
+
+			.hidden {
+				display: none;
+			}
+
+			.preview-image {
+				max-height: 256px;
+				margin: 0 auto 8px;
+				display: block;
+			}
+
+			.button-container {
+				display: flex;
+				gap: 8px;
+				margin-bottom: 16px;
+			}
+
+			.button-primary {
+				background-color: #3b82f6;
+				color: white;
+				padding: 8px 16px;
+				border-radius: 4px;
+				border: none;
+				cursor: pointer;
+				flex: 1;
+			}
+
+			.button-primary:hover {
+				background-color: #2563eb;
+			}
+
+			.button-primary:disabled {
+				background-color: #93c5fd;
+				cursor: not-allowed;
+			}
+
+			.button-secondary {
+				background-color: #e5e7eb;
+				color: #1f2937;
+				padding: 8px 16px;
+				border-radius: 4px;
+				border: none;
+				cursor: pointer;
+			}
+
+			.button-secondary:hover {
+				background-color: #d1d5db;
+			}
+
+			.error-message {
+				background-color: #fee2e2;
+				color: #b91c1c;
+				padding: 12px;
+				border-radius: 4px;
+				margin-bottom: 16px;
+			}
+
+			.results-container {
+				background-color: #f3f4f6;
+				padding: 16px;
+				border-radius: 8px;
+				margin-bottom: 16px;
+			}
+
+			.analysis-grid {
+				display: grid;
+				grid-template-columns: 1fr 2fr;
+				gap: 8px;
+			}
+
+			.analysis-label {
+				font-weight: 500;
+			}
+
+			.raw-text-container {
+				background-color: #f9fafb;
+				padding: 12px;
+				border-radius: 4px;
+				border: 1px solid #e5e7eb;
+				font-family: monospace;
+				font-size: 14px;
+				white-space: pre-line;
+				margin-top: 16px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Receipt Scanner</h1>
+
+		<div id="uploadArea" class="upload-area">
+			<input type="file" id="fileInput" accept="image/*" class="hidden" />
+
+			<div id="uploadContent">
+				<svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+				</svg>
+				<p class="upload-text">Click to upload or drag and drop</p>
+				<p class="upload-hint">PNG, JPG, GIF up to 10MB</p>
+			</div>
+
+			<div id="previewContent" class="hidden">
+				<img id="previewImage" class="preview-image" alt="Receipt" />
+				<p class="upload-text">Click to change image</p>
+			</div>
+		</div>
+
+		<div class="button-container">
+			<button id="scanButton" class="button-primary" disabled>Scan Receipt</button>
+			<button id="resetButton" class="button-secondary">Reset</button>
+		</div>
+
+		<div id="errorMessage" class="error-message hidden"></div>
+
+		<div id="analysisResults" class="results-container hidden">
+			<h2>Receipt Analysis</h2>
+			<div class="analysis-grid">
+				<div class="analysis-label">Title:</div>
+				<div id="receiptTitle"></div>
+				<div class="analysis-label">Date:</div>
+				<div id="receiptDate"></div>
+				<div class="analysis-label">Total Amount:</div>
+				<div id="receiptTotal"></div>
+			</div>
+		</div>
+
+		<div id="ocrResults" class="hidden">
+			<h3>Raw OCR Text</h3>
+			<div id="ocrText" class="raw-text-container"></div>
+		</div>
+
+		<script>
+			// DOM Elements
+			const uploadArea = document.getElementById("uploadArea");
+			const fileInput = document.getElementById("fileInput");
+			const uploadContent = document.getElementById("uploadContent");
+			const previewContent = document.getElementById("previewContent");
+			const previewImage = document.getElementById("previewImage");
+			const scanButton = document.getElementById("scanButton");
+			const resetButton = document.getElementById("resetButton");
+			const errorMessage = document.getElementById("errorMessage");
+			const analysisResults = document.getElementById("analysisResults");
+			const receiptTitle = document.getElementById("receiptTitle");
+			const receiptDate = document.getElementById("receiptDate");
+			const receiptTotal = document.getElementById("receiptTotal");
+			const ocrResults = document.getElementById("ocrResults");
+			const ocrText = document.getElementById("ocrText");
+
+			// Global state
+			let imageData = null;
+			let isLoading = false;
+
+			// Event listeners
+			uploadArea.addEventListener("click", () => {
+				fileInput.click();
+			});
+
+			fileInput.addEventListener("change", handleFileSelect);
+			uploadArea.addEventListener("dragover", handleDragOver);
+			uploadArea.addEventListener("drop", handleDrop);
+			scanButton.addEventListener("click", scanReceipt);
+			resetButton.addEventListener("click", resetForm);
+
+			// Functions
+			function handleFileSelect(e) {
+				const file = e.target.files[0];
+				if (!file) return;
+
+				processFile(file);
+			}
+
+			function handleDragOver(e) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+
+			function handleDrop(e) {
+				e.preventDefault();
+				e.stopPropagation();
+
+				const file = e.dataTransfer.files[0];
+				if (!file) return;
+
+				processFile(file);
+			}
+
+			function processFile(file) {
+				// Check if the file is an image
+				if (!file.type.match("image.*")) {
+					showError("Please select an image file");
+					return;
+				}
+
+				// Read the file as a data URL
+				const reader = new FileReader();
+				reader.onload = (event) => {
+					imageData = event.target.result;
+
+					// Show preview
+					previewImage.src = imageData;
+					uploadContent.classList.add("hidden");
+					previewContent.classList.remove("hidden");
+
+					// Enable scan button
+					scanButton.disabled = false;
+
+					// Hide error if any
+					hideError();
+
+					// Hide previous results if any
+					analysisResults.classList.add("hidden");
+					ocrResults.classList.add("hidden");
+				};
+				reader.readAsDataURL(file);
+			}
+
+			// Helper function to clean JSON string from markdown or code blocks
+			function cleanJsonString(jsonString) {
+				// Remove markdown code block syntax if present
+				if (jsonString.includes("```")) {
+					// Extract the content between triple backticks
+					const match = jsonString.match(/```(?:json)?\s*([\s\S]*?)```/);
+					if (match && match[1]) {
+						jsonString = match[1].trim();
+					} else {
+						// If the pattern doesn't match exactly, just remove all backticks
+						jsonString = jsonString.replace(/```json|```/g, "").trim();
+					}
+				}
+
+				return jsonString;
+			}
+
+			async function scanReceipt() {
+				if (!imageData) {
+					showError("Please select an image first");
+					return;
+				}
+
+				// Set loading state
+				isLoading = true;
+				scanButton.textContent = "Processing...";
+				scanButton.disabled = true;
+				hideError();
+
+				try {
+					const response = await fetch("http://localhost:5000/api/ocr-receipt", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({ image: imageData }),
+					});
+
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.error || "Failed to process receipt");
+					}
+
+					const data = await response.json();
+
+					// Display OCR text
+					ocrText.textContent = data.ocr_text;
+					ocrResults.classList.remove("hidden");
+
+					try {
+						// Clean and parse the JSON string from the analysis field
+						const cleanedJsonString = cleanJsonString(data.analysis);
+						console.log("Cleaned JSON string:", cleanedJsonString);
+
+						const analysis = JSON.parse(cleanedJsonString);
+
+						// Display analysis results
+						receiptTitle.textContent = analysis.judul || "Not found";
+						receiptDate.textContent = analysis.tanggal || "Not found";
+						receiptTotal.textContent = analysis.subtotal || "Not found";
+						analysisResults.classList.remove("hidden");
+					} catch (jsonError) {
+						showError("Error parsing receipt analysis");
+						console.error("Error parsing analysis JSON:", jsonError);
+						console.error("Raw analysis string:", data.analysis);
+					}
+				} catch (error) {
+					showError(error.message || "An unexpected error occurred");
+					console.error("Error processing receipt:", error);
+				} finally {
+					// Reset loading state
+					isLoading = false;
+					scanButton.textContent = "Scan Receipt";
+					scanButton.disabled = false;
+				}
+			}
+
+			function resetForm() {
+				imageData = null;
+				fileInput.value = "";
+
+				// Reset UI
+				uploadContent.classList.remove("hidden");
+				previewContent.classList.add("hidden");
+				scanButton.disabled = true;
+				hideError();
+
+				// Hide results
+				analysisResults.classList.add("hidden");
+				ocrResults.classList.add("hidden");
+			}
+
+			function showError(message) {
+				errorMessage.textContent = message;
+				errorMessage.classList.remove("hidden");
+			}
+
+			function hideError() {
+				errorMessage.textContent = "";
+				errorMessage.classList.add("hidden");
+			}
+		</script>
+	</body>
+</html>
