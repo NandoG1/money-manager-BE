@@ -6,7 +6,6 @@ def main():
     parser = argparse.ArgumentParser(description='Run financial advisor chatbot backend')
     args = parser.parse_args()
     
-    # Check if .env file exists
     if not os.path.exists('.env'):
         print("Error: .env file not found. Please create a .env file with your GEMINI_API_KEY.")
         print("Example: GEMINI_API_KEY=your_api_key_here")

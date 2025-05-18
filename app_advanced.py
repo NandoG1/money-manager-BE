@@ -103,7 +103,6 @@ def extract_text_from_image(image_data):
     try:
         custom_config = r'--oem 3 --psm 6'
         
-        # Process the image with pytesseract
         text = pytesseract.image_to_string(image_data, lang='ind', config=custom_config)
         return text
     except Exception as e:
@@ -140,18 +139,14 @@ PENTING: Berikan response dalam format JSON yang valid tanpa backtick, tanpa mar
 
     response = requests.post(url, json=data, headers={"Content-Type": "application/json"})
     
-    # Check status and get result
     if response.status_code == 200:
         result = response.json()
         output_text = result['candidates'][0]['content']['parts'][0]['text'].strip()
         
-        # Ensure we have valid JSON by extracting it if needed
         try:
-            # Try to parse as JSON directly first
             json.loads(output_text)
             return output_text
         except json.JSONDecodeError:
-            # If it's not valid JSON, try to extract JSON object
             import re
             json_pattern = r'{.*}'
             match = re.search(json_pattern, output_text, re.DOTALL)
@@ -159,11 +154,9 @@ PENTING: Berikan response dalam format JSON yang valid tanpa backtick, tanpa mar
             if match:
                 extracted_json = match.group(0)
                 try:
-                    # Validate extracted JSON
                     json.loads(extracted_json)
                     return extracted_json
                 except:
-                    # If still not valid, return fallback JSON
                     return '{"judul": "Tidak ditemukan", "tanggal": "Tidak ditemukan", "subtotal": "Tidak ditemukan"}'
             else:
                 return '{"judul": "Tidak ditemukan", "tanggal": "Tidak ditemukan", "subtotal": "Tidak ditemukan"}'
@@ -272,13 +265,11 @@ def predict_finances():
         df['day_of_week'] = df['date'].dt.dayofweek
         df['month'] = df['date'].dt.month
         
-        # Add lag features (values from previous days)
-        for lag in range(1, 4):  # Use data from previous 3 days
+        for lag in range(1, 4):
             if len(df) > lag:
                 df[f'income_lag_{lag}'] = df['income'].shift(lag).fillna(df['income'].mean())
                 df[f'expense_lag_{lag}'] = df['expense'].shift(lag).fillna(df['expense'].mean())
 
-        # For rolling average calculation
         df['income_rolling_mean'] = df['income'].rolling(window=7, min_periods=1).mean()
         df['expense_rolling_mean'] = df['expense'].rolling(window=7, min_periods=1).mean()
         
@@ -299,7 +290,6 @@ def predict_finances():
         
         expense_model.fit(X, df['expense'])
         
-        # Predict for the next 7 days
         future_dates = [df['date'].max() + timedelta(days=i) for i in range(1, 8)]
         
         future_features = []
@@ -323,24 +313,20 @@ def predict_finances():
             
             for lag in range(1, 4):
                 if i >= lag:
-                    # Use previous predictions
                     day_future[f'income_lag_{lag}'] = future_features[i-lag]['predicted_income']
                     day_future[f'expense_lag_{lag}'] = future_features[i-lag]['predicted_expense']
                 else:
-                    # Use historical data
+
                     day_future[f'income_lag_{lag}'] = last_income_values[-lag]
                     day_future[f'expense_lag_{lag}'] = last_expense_values[-lag]
             
-            # Make predictions for this day
             future_X = pd.DataFrame([{k: v for k, v in day_future.items() if k in features}])
             
             predicted_income = income_model.predict(future_X)[0]
             predicted_expense = expense_model.predict(future_X)[0]
             
-            # Add controlled random variation to make predictions more realistic
-            # Use a fixed random seed to ensure consistency
-            # You can comment these 4 lines out if you want exactly the same predictions every time without randomness
-            income_std = df['income'].std() * 0.15  # Use 15% of the standard deviation
+          
+            income_std = df['income'].std() * 0.15 
             expense_std = df['expense'].std() * 0.15
             predicted_income += random.normalvariate(0, income_std)
             predicted_expense += random.normalvariate(0, expense_std)
@@ -359,8 +345,8 @@ def predict_finances():
 
             day_result = {
                 "date": future_date.strftime('%Y-%m-%d'),
-                "predicted_income": int(predicted_income),  # Convert to integer
-                "predicted_expense": int(predicted_expense)  # Convert to integer
+                "predicted_income": int(predicted_income), 
+                "predicted_expense": int(predicted_expense) 
             }
             
             future_features.append(day_result)
